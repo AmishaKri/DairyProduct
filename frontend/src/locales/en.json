@@ -1,0 +1,134 @@
+{
+  "navbar": {
+    "home": "Home",
+    "products": "Products",
+    "milk": "Milk",
+    "contact": "Contact",
+    "premiumDairy": "Premium Dairy",
+    "searchPlaceholder": "Search products...",
+    "noProductsFound": "No products found for",
+    "wishlist": "Wishlist",
+    "cart": "Cart"
+  },
+  "hero": {
+    "badge": "Farm to doorstep, every morning",
+    "title": "Pure Dairy, Crafted with Care",
+    "subtitle": "Premium farm-fresh milk, ghee, paneer and more — sourced from grass-fed cows and delivered to your door.",
+    "exploreProducts": "Shop Now",
+    "contactUs": "Contact Us",
+    "stats": {
+      "pureFresh": "Pure & Fresh",
+      "farmToDoor": "Farm to Door",
+      "customerRated": "Customer Rated"
+    },
+    "bestSeller": "Today's Best Seller",
+    "product": "Whole Milk · ₹65"
+  },
+  "features": {
+    "whyKshira": "Why Kshira",
+    "title": "Crafted for the table you love",
+    "organic": {
+      "title": "100% Organic",
+      "desc": "Grass-fed, hormone-free dairy from trusted farms."
+    },
+    "delivery": {
+      "title": "Daily Delivery",
+      "desc": "Fresh from farm to your door every morning."
+    },
+    "quality": {
+      "title": "Quality Assured",
+      "desc": "Lab-tested for purity at every step."
+    },
+    "support": {
+      "title": "24/7 Support",
+      "desc": "We're always here to help with your order."
+    }
+  },
+  "aiSection": {
+    "badge": "Live freshness engine",
+    "title": "AI choreographs every drop of freshness.",
+    "subtitle": "Our neural supply stack watches cattle vitals, chillers, and rider routes so your dairy reaches you with peak nutrition intact. It's like having a personal maître d' for milk.",
+    "dailyBatches": "Daily batches orchestrated",
+    "chillRetention": "Avg. chill retention",
+    "experienceIt": "Experience it",
+    "howItWorks": "See how it works",
+    "predictiveHarvest": {
+      "title": "Predictive Harvest",
+      "desc": "AI forecasts how much milk we need every dawn to avoid waste and shortages.",
+      "metric": "99.3% accuracy"
+    },
+    "nutrientScan": {
+      "title": "Nutrient Scan",
+      "desc": "Sensors grade every batch for fat %, creaminess, and purity in seconds.",
+      "metric": "42 quality checks"
+    },
+    "coldChain": {
+      "title": "Cold Chain Route",
+      "desc": "Dynamic routing keeps deliveries under 4°C until they reach your door.",
+      "metric": "12 min avg. travel"
+    }
+  },
+  "bestsellers": {
+    "featured": "Featured",
+    "title": "Our Bestsellers",
+    "subtitle": "Curated by smart demand signals and thousands of meal plans our customers love.",
+    "viewAll": "View all"
+  },
+  "testimonials": {
+    "badge": "Stories in motion",
+    "title": "Customers on the Kshira flow",
+    "aiCurated": "AI CURATED",
+    "chef": {
+      "quote": "We switched to Kshira for our boutique bakery and the consistency is unreal. Customers taste the difference.",
+      "name": "Chef Myra Kapoor",
+      "role": "Crème Atelier"
+    },
+    "soma": {
+      "quote": "The AI alerts help us plan weekly menus without over-ordering. Nothing goes to waste anymore.",
+      "name": "Soma Banerjee",
+      "role": "Wellness Café"
+    },
+    "ritu": {
+      "quote": "Kids can't stop talking about the chocolate milk drops. Delivery is always before breakfast!",
+      "name": "Ritu & Aarav",
+      "role": "Delhi"
+    }
+  },
+  "products": {
+    "title": "Our Products",
+    "subtitle": "Premium dairy, freshly sourced.",
+    "categories": {
+      "all": "All",
+      "milk": "Milk",
+      "dairy": "Dairy"
+    },
+    "noProducts": "No products found."
+  },
+  "contact": {
+    "title": "Contact Us",
+    "subtitle": "We'd love to hear from you. Send us a message and we'll respond as soon as possible.",
+    "info": {
+      "email": "Email",
+      "phone": "Phone",
+      "address": "Address",
+      "whatsapp": "WhatsApp"
+    },
+    "form": {
+      "name": "Name",
+      "email": "Email",
+      "message": "Message",
+      "submit": "Send Message"
+    }
+  },
+  "footer": {
+    "tagline": "Premium dairy, delivered with love.",
+    "shop": "Shop",
+    "allProducts": "All Products",
+    "milk": "Milk",
+    "dairy": "Dairy",
+    "company": "Company",
+    "contact": "Contact",
+    "getInTouch": "Get in touch",
+    "rights": "All rights reserved."
+  }
+}
