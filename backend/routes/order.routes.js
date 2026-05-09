@@ -1,11 +1,12 @@
 import express from "express";
 import Order from "../models/Order.model.js";
 import { adminAuth } from "../middleware/auth.js";
+import { userAuth } from "../middleware/userAuth.js";
 
 const router = express.Router();
 
-// Create order (public)
-router.post("/", async (req, res) => {
+// Create order (public or authenticated)
+router.post("/", userAuth, async (req, res) => {
   try {
     const {
       customerName,
@@ -15,7 +16,9 @@ router.post("/", async (req, res) => {
       total,
       paymentMethod,
       transactionId,
-      userId,
+      paymentStatus,
+      razorpayOrderId,
+      razorpayPaymentId,
     } = req.body;
 
     if (!customerName || !customerPhone || !customerAddress || !items || !total || !paymentMethod) {
@@ -30,7 +33,10 @@ router.post("/", async (req, res) => {
       total,
       paymentMethod,
       transactionId: transactionId || null,
-      userId: userId || null,
+      paymentStatus: paymentStatus || "pending",
+      razorpayOrderId: razorpayOrderId || null,
+      razorpayPaymentId: razorpayPaymentId || null,
+      userId: req.userId || null,
     });
 
     await order.save();
@@ -68,13 +74,39 @@ router.patch("/:id/status", adminAuth, async (req, res) => {
   try {
     const { status } = req.body;
 
-    if (!["pending", "confirmed", "delivered"].includes(status)) {
+    if (!["pending", "confirmed", "delivered", "cancelled"].includes(status)) {
       return res.status(400).json({ error: "Invalid status" });
     }
 
     const order = await Order.findByIdAndUpdate(
       req.params.id,
       { status },
+      { new: true, runValidators: true }
+    );
+
+    if (!order) {
+      return res.status(404).json({ error: "Order not found" });
+    }
+
+    res.json(order);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update payment status (public - called after Razorpay payment)
+router.patch("/:id/payment", async (req, res) => {
+  try {
+    const { paymentStatus, transactionId, razorpayPaymentId, razorpayOrderId } = req.body;
+
+    const order = await Order.findByIdAndUpdate(
+      req.params.id,
+      {
+        paymentStatus: paymentStatus || "completed",
+        transactionId: transactionId || null,
+        razorpayPaymentId: razorpayPaymentId || null,
+        razorpayOrderId: razorpayOrderId || null,
+      },
       { new: true, runValidators: true }
     );
 

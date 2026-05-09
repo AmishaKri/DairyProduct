@@ -70,6 +70,8 @@ export const orderAPI = {
   getById: (id: string) => userApi.get(`/orders/${id}`),
   updateStatus: (id: string, status: string) =>
     adminApi.patch(`/orders/${id}/status`, { status }),
+  updatePayment: (id: string, data: { paymentStatus: string; transactionId?: string; razorpayPaymentId?: string; razorpayOrderId?: string }) =>
+    api.patch(`/orders/${id}/payment`, data),
 };
 
 export const paymentAPI = {

@@ -29,15 +29,28 @@ const orderSchema = new mongoose.Schema(
     },
     paymentMethod: {
       type: String,
-      enum: ["upi", "online", "cod", "cashfree"],
+      enum: ["upi", "online", "cod", "cashfree", "card", "netbanking", "wallet", "qr", "rtgs", "razorpay"],
       required: true,
     },
     status: {
       type: String,
-      enum: ["pending", "confirmed", "delivered"],
+      enum: ["pending", "confirmed", "delivered", "cancelled"],
+      default: "pending",
+    },
+    paymentStatus: {
+      type: String,
+      enum: ["pending", "completed", "failed", "refunded"],
       default: "pending",
     },
     transactionId: {
+      type: String,
+      default: null,
+    },
+    razorpayOrderId: {
+      type: String,
+      default: null,
+    },
+    razorpayPaymentId: {
       type: String,
       default: null,
     },
