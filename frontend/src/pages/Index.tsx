@@ -19,7 +19,6 @@ export default function Index() {
   useEffect(() => {
     productAPI.getAll()
       .then(({ data }) => {
-        console.log("Products API response:", data);
         const mapped = (data || []).map((p: any) => ({
           id: p._id,
           name: p.name,
@@ -30,10 +29,7 @@ export default function Index() {
           in_stock: p.inStock,
           highlighted: p.highlighted || false,
         }));
-        // Highlighted products first, then rest — max 8 total
-        const highlighted = mapped.filter((p: any) => p.highlighted);
-        const rest = mapped.filter((p: any) => !p.highlighted);
-        setProducts([...highlighted, ...rest].slice(0, 8));
+        setProducts(mapped.slice(0, 8));
       })
       .catch((error) => {
         console.error("Products API error:", error);

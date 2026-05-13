@@ -9,12 +9,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Trash2, Package, ShoppingBag, Edit, Heart, LayoutDashboard, Tag, ToggleLeft, ToggleRight, Percent, IndianRupee, Star } from "lucide-react";
+import { Trash2, Package, ShoppingBag, Edit, Heart, LayoutDashboard, Tag, ToggleLeft, ToggleRight, Percent, IndianRupee, Star, Menu } from "lucide-react";
 
 type Product = { _id: string; name: string; description: string | null; price: number; category: string; imageUrl: string | null; inStock: boolean; discount: number; highlighted: boolean };
 type Coupon = { _id: string; code: string; discountType: "percent" | "flat"; discountValue: number; minOrderValue: number; maxUses: number | null; usedCount: number; isActive: boolean; expiresAt: string | null };
 type Order = { _id: string; customerName: string; customerPhone: string; customerAddress: string; total: number; paymentMethod: string; status: string; transactionId: string | null; createdAt: string; items: any };
-type WishlistItem = { _id: string; userId: { email: string }; productId: { name: string; price: number; imageUrl: string }; createdAt: string };
+type WishlistItem = { _id: string; userId: { email: string } | null; sessionId: string | null; productId: { _id: string; name: string; price: number; imageUrl: string }; createdAt: string };
 
 export default function Admin() {
   const navigate = useNavigate();
@@ -35,6 +35,7 @@ export default function Admin() {
   const [pricingProduct, setPricingProduct] = useState<Product | null>(null);
   const [pricingForm, setPricingForm] = useState({ price: "", discount: "" });
   const [pricingDialogOpen, setPricingDialogOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const totalRevenue = orders.reduce((sum, order) => sum + (order.total || 0), 0);
   const pendingOrders = orders.filter((o) => o.status === "pending").length;
@@ -64,6 +65,16 @@ export default function Admin() {
   })();
 
   useEffect(() => {
+    // Require admin token only
+    const adminToken = localStorage.getItem("kshira_admin_token");
+
+    if (!adminToken) {
+      setIsAdmin(false);
+      setAuthChecked(true);
+      navigate("/admin-login");
+      return;
+    }
+
     setIsAdmin(true);
     setAuthChecked(true);
     load();
@@ -75,8 +86,13 @@ export default function Admin() {
       setProducts(p || []);
       const { data: o } = await orderAPI.getAll();
       setOrders(o || []);
-      const { data: w } = await wishlistAPI.getAllAdmin();
-      setWishlists(w || []);
+      try {
+        const { data: w } = await wishlistAPI.getAllAdmin();
+        setWishlists(w || []);
+      } catch (wishlistError: any) {
+        console.error("Failed to load wishlist:", wishlistError.response?.data);
+        setWishlists([]);
+      }
       const { data: c } = await couponAPI.getAll();
       setCoupons(c || []);
     } catch (error) {
@@ -267,22 +283,40 @@ export default function Admin() {
   return (
     <Layout hideNavbar>
       <div className="flex flex-1 min-h-full">
-        <AdminSidebar activeTab={activeTab} onTabChange={setActiveTab} onLogout={logout} />
-        
-        <main className="flex-1 p-8 mt-8 pb-12">
+        <AdminSidebar
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          onLogout={logout}
+          isOpen={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+        />
+
+        <div className="flex-1 flex flex-col min-w-0">
+          {/* Mobile top bar */}
+          <div className="lg:hidden flex items-center gap-3 px-4 py-3 border-b border-border sticky top-0 bg-background z-30">
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="p-2 rounded-lg hover:bg-accent transition-colors"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+            <span className="font-display font-semibold text-lg">Admin Panel</span>
+          </div>
+
+        <main className="flex-1 p-4 md:p-8 pb-12 lg:mt-8">
           <div className="max-w-6xl mx-auto">
             {activeTab === "dashboard" && (
               <div className="space-y-6">
-                <div className="bg-gradient-to-r from-[#0f172a] via-[#111e3a] to-[#1e3a8a] text-white rounded-3xl p-8 border border-white/10 shadow-2xl">
+                <div className="bg-gradient-to-r from-[#0f172a] via-[#111e3a] to-[#1e3a8a] text-white rounded-3xl p-5 md:p-8 border border-white/10 shadow-2xl">
                   <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
                     <div>
                       <p className="text-sm uppercase tracking-[0.3em] text-white/70">Kshira Insights</p>
-                      <h1 className="font-display text-4xl font-bold mt-2">Welcome back, Admin</h1>
+                      <h1 className="font-display text-3xl md:text-4xl font-bold mt-2">Welcome back, Admin</h1>
                       <p className="text-white/70 mt-2 max-w-2xl">
                         Monitor live orders, revenue, and wishlist love from your customers. Data refreshes automatically every few seconds.
                       </p>
                     </div>
-                    <div className="grid grid-cols-2 gap-4 min-w-[260px]">
+                    <div className="grid grid-cols-2 gap-4 w-full lg:min-w-[260px] lg:w-auto">
                       <div className="bg-white/10 rounded-2xl p-4">
                         <p className="text-xs uppercase tracking-wider text-white/70">Revenue</p>
                         <p className="text-3xl font-bold">₹{totalRevenue.toFixed(0)}</p>
@@ -332,7 +366,7 @@ export default function Admin() {
                         <Heart className="w-5 h-5" />
                       </div>
                     </div>
-                    <p className="text-xs text-muted-foreground mt-3">Latest add • {recentWishlist[0]?.userId.email || "--"}</p>
+                    <p className="text-xs text-muted-foreground mt-3">Latest add • {recentWishlist[0]?.userId?.email ?? "Guest"}</p>
                   </div>
                   <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
                     <div className="flex items-center justify-between">
@@ -404,7 +438,7 @@ export default function Admin() {
                             <div key={item._id} className="flex items-center justify-between">
                               <div>
                                 <p className="font-semibold">{item.productId.name}</p>
-                                <p className="text-xs text-muted-foreground">{item.userId.email}</p>
+                                <p className="text-xs text-muted-foreground">{item.userId?.email ?? "Guest"}</p>
                               </div>
                               <span className="text-xs text-muted-foreground">{new Date(item.createdAt).toLocaleDateString()}</span>
                             </div>
@@ -419,9 +453,9 @@ export default function Admin() {
 
             {activeTab === "products" && (
               <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <h1 className="font-display text-4xl font-bold">Products</h1>
-                  <Button onClick={() => setAddDialogOpen(true)} className="bg-gradient-gold text-primary hover:opacity-90 font-semibold">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <h1 className="font-display text-2xl sm:text-4xl font-bold">Products</h1>
+                  <Button onClick={() => setAddDialogOpen(true)} className="bg-gradient-gold text-primary hover:opacity-90 font-semibold w-full sm:w-auto">
                     + Add Product
                   </Button>
                 </div>
@@ -466,17 +500,17 @@ export default function Admin() {
 
             {activeTab === "orders" && (
               <div className="space-y-6">
-                <h1 className="font-display text-4xl font-bold">Orders</h1>
+                <h1 className="font-display text-2xl sm:text-4xl font-bold">Orders</h1>
                 {orders.length === 0 && <div className="text-center py-12 text-muted-foreground">No orders yet.</div>}
                 {orders.map((o) => (
-                  <div key={o._id} className="bg-card border border-border rounded-2xl p-5">
+                  <div key={o._id} className="bg-card border border-border rounded-2xl p-4 md:p-5">
                     <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
-                      <div>
-                        <div className="font-display text-lg font-bold">{o.customerName}</div>
-                        <div className="text-sm text-muted-foreground">{o.customerPhone} • {new Date(o.createdAt).toLocaleString()}</div>
+                      <div className="min-w-0">
+                        <div className="font-display text-base md:text-lg font-bold truncate">{o.customerName}</div>
+                        <div className="text-xs md:text-sm text-muted-foreground">{o.customerPhone} • {new Date(o.createdAt).toLocaleString()}</div>
                       </div>
-                      <div className="text-right">
-                        <div className="font-display text-2xl font-bold">₹{Number(o.total).toFixed(0)}</div>
+                      <div className="text-right shrink-0">
+                        <div className="font-display text-xl md:text-2xl font-bold">₹{Number(o.total).toFixed(0)}</div>
                         <div className="text-xs uppercase tracking-wider text-muted-foreground">{o.paymentMethod}</div>
                       </div>
                     </div>
@@ -487,7 +521,7 @@ export default function Admin() {
                         <div key={idx}>• {i.name} × {i.quantity}</div>
                       ))}
                     </div>
-                    <div className="flex gap-2 mt-4">
+                    <div className="flex flex-wrap gap-2 mt-4">
                       {["pending", "confirmed", "delivered"].map((s) => (
                         <Button key={s} size="sm" variant={o.status === s ? "default" : "outline"}
                           onClick={() => updateOrderStatus(o._id, s)}
@@ -503,12 +537,12 @@ export default function Admin() {
 
             {activeTab === "pricing" && (
               <div className="space-y-8">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
-                    <h1 className="font-display text-4xl font-bold">Pricing & Coupons</h1>
+                    <h1 className="font-display text-2xl sm:text-4xl font-bold">Pricing & Coupons</h1>
                     <p className="text-muted-foreground mt-1">Manage product prices, discounts and coupon codes</p>
                   </div>
-                  <Button onClick={() => setCouponDialogOpen(true)} className="bg-gradient-gold text-primary hover:opacity-90 font-semibold">
+                  <Button onClick={() => setCouponDialogOpen(true)} className="bg-gradient-gold text-primary hover:opacity-90 font-semibold w-full sm:w-auto">
                     <Tag className="w-4 h-4 mr-2" /> + New Coupon
                   </Button>
                 </div>
@@ -596,41 +630,105 @@ export default function Admin() {
             {activeTab === "wishlist" && (
               <div className="space-y-6">
                 <div className="flex items-center justify-between">
-                  <h1 className="font-display text-4xl font-bold">Wishlist</h1>
-                  <div className="text-sm text-muted-foreground">{wishlists.length} items</div>
+                  <h1 className="font-display text-2xl sm:text-4xl font-bold">Wishlist</h1>
+                  <div className="text-sm text-muted-foreground">{wishlists.length} total items</div>
                 </div>
-                {wishlists.length === 0 && (
+
+                {/* Summary Stats */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="bg-card border border-border rounded-2xl p-5 flex items-center gap-4">
+                    <div className="w-11 h-11 rounded-full bg-pink-100 text-pink-600 flex items-center justify-center flex-shrink-0">
+                      <Heart className="w-5 h-5 fill-current" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Total Wishlisted</p>
+                      <p className="font-display text-3xl font-bold">{wishlists.length}</p>
+                    </div>
+                  </div>
+                  <div className="bg-card border border-border rounded-2xl p-5 flex items-center gap-4">
+                    <div className="w-11 h-11 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center flex-shrink-0">
+                      <Package className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Unique Products</p>
+                      <p className="font-display text-3xl font-bold">
+                        {new Set(wishlists.map((w) => w.productId?._id ?? w.productId?.name)).size}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="bg-card border border-border rounded-2xl p-5 flex items-center gap-4">
+                    <div className="w-11 h-11 rounded-full bg-green-100 text-green-600 flex items-center justify-center flex-shrink-0">
+                      <ShoppingBag className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Unique Users</p>
+                      <p className="font-display text-3xl font-bold">
+                        {new Set(wishlists.map((w) => w.userId?.email ?? w.sessionId)).size}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {wishlists.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-20 text-center">
                     <div className="w-24 h-24 rounded-full bg-gradient-to-br from-pink-100 to-rose-100 flex items-center justify-center mb-6">
                       <Heart className="w-12 h-12 text-pink-300" />
                     </div>
                     <h2 className="font-display text-2xl font-bold mb-2">No wishlist items yet</h2>
-                    <p className="text-muted-foreground">Items added to wishlist will appear here</p>
+                    <p className="text-muted-foreground">Items added to wishlist by customers will appear here</p>
                   </div>
-                )}
-                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {wishlists.map((w) => (
-                    <div key={w._id} className="bg-card border border-border rounded-2xl p-4 hover:shadow-lg transition-shadow">
-                      <div className="flex items-start gap-4">
-                        <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-pink-100 to-rose-100 flex items-center justify-center flex-shrink-0">
-                          <Heart className="w-8 h-8 text-pink-500 fill-current" />
+                ) : (
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+                    {wishlists.map((w) => (
+                      <div key={w._id} className="bg-card border border-border rounded-2xl overflow-hidden hover:shadow-lg transition-shadow">
+                        {/* Product image */}
+                        <div className="relative h-44 bg-gradient-to-br from-pink-50 to-rose-50">
+                          {w.productId?.imageUrl ? (
+                            <img
+                              src={w.productId.imageUrl}
+                              alt={w.productId.name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <Heart className="w-14 h-14 text-pink-300 fill-current" />
+                            </div>
+                          )}
+                          <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm rounded-full px-3 py-1 text-sm font-bold shadow">
+                            ₹{w.productId?.price}
+                          </div>
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-lg mb-1 truncate">{w.productId.name}</div>
-                          <div className="text-sm text-muted-foreground mb-2">{w.userId.email}</div>
-                          <div className="flex items-center justify-between">
-                            <div className="font-display font-bold text-lg">₹{w.productId.price}</div>
-                            <div className="text-xs text-muted-foreground">{new Date(w.createdAt).toLocaleDateString()}</div>
+
+                        {/* Details */}
+                        <div className="p-4 space-y-2">
+                          <div className="font-semibold text-lg leading-tight truncate">{w.productId?.name}</div>
+                          <div className="flex items-center gap-2">
+                            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0 ${
+                              w.userId?.email
+                                ? "bg-gradient-to-br from-blue-400 to-indigo-500"
+                                : "bg-gradient-to-br from-gray-400 to-gray-500"
+                            }`}>
+                              {w.userId?.email?.[0]?.toUpperCase() ?? "G"}
+                            </div>
+                            <div className="text-sm text-muted-foreground truncate">
+                              {w.userId?.email ?? (
+                                <span className="italic">Guest · {w.sessionId?.slice(0, 8)}</span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="text-xs text-muted-foreground pt-1">
+                            Added on {new Date(w.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
                           </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>
         </main>
+        </div>
       </div>
 
       <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>

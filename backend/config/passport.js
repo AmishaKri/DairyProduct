@@ -32,7 +32,7 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
             await user.save();
           }
 
-          const token = jwt.sign({ userId: user._id, email: user.email }, process.env.JWT_SECRET, {
+          const token = jwt.sign({ userId: user._id, email: user.email, role: user.role }, process.env.JWT_SECRET, {
             expiresIn: "7d",
           });
 

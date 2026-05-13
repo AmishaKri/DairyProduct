@@ -1,50 +1,94 @@
 import { useEffect, useState } from "react";
 import Layout from "@/components/Layout";
-import ProductCard from "@/components/ProductCard";
-import { productAPI } from "@/lib/api";
-import { useWishlist } from "@/lib/wishlist-store";
+import { wishlistAPI, productAPI } from "@/lib/api";
+import { wishlist as wishlistStore, useWishlist } from "@/lib/wishlist-store";
 import { cart, type Product } from "@/lib/cart-store";
-import { Heart, ShoppingBag, X } from "lucide-react";
+import { Heart, ShoppingBag, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 
+const mapProduct = (p: any): Product => ({
+  ...p,
+  id: p._id,
+  image_url: p.imageUrl,
+  in_stock: p.inStock,
+});
+
 export default function Wishlist() {
-  const { productIds, removeFromWishlist } = useWishlist();
+  const { removeFromWishlist } = useWishlist();
   const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const isAuthenticated = !!localStorage.getItem("kshira_token");
 
   useEffect(() => {
     let isMounted = true;
+    setLoading(true);
 
-    if (productIds.length === 0) {
-      setProducts([]);
-      return;
-    }
+    const run = async () => {
+      if (!isAuthenticated) {
+        // Guest user — load from localStorage only
+        const localItems = wishlistStore.get();
+        if (localItems.length === 0) {
+          if (isMounted) { setProducts([]); setLoading(false); }
+          return;
+        }
+        const results = await Promise.allSettled(
+          localItems.map((item) => productAPI.getById(item.productId))
+        );
+        const mapped = results
+          .filter((r): r is PromiseFulfilledResult<any> => r.status === "fulfilled" && r.value?.data)
+          .map((r) => mapProduct(r.value.data));
+        if (isMounted) { setProducts(mapped); setLoading(false); }
+        return;
+      }
 
-    const fetchProducts = async () => {
-      const results = await Promise.allSettled(productIds.map((id) => productAPI.getById(id)));
-      const mapped = results
-        .filter((r): r is PromiseFulfilledResult<any> => r.status === "fulfilled" && r.value?.data)
-        .map((r) => r.value.data)
-        .map((p: any) => ({
-          ...p,
-          id: p._id,
-          image_url: p.imageUrl,
-          in_stock: p.inStock,
-        }));
+      // Logged-in user — fetch from DB
+      try {
+        const { data } = await wishlistAPI.getAll();
+        const apiProducts = data as any[];
 
-      if (isMounted) {
-        setProducts(mapped as Product[]);
+        if (apiProducts.length === 0) {
+          // DB empty — check localStorage for unsynced items
+          const localItems = wishlistStore.get();
+          if (localItems.length > 0) {
+            await Promise.allSettled(
+              localItems.map((item) => wishlistAPI.add(item.productId))
+            );
+            const { data: freshData } = await wishlistAPI.getAll();
+            if (isMounted) setProducts((freshData as any[]).map(mapProduct));
+            return;
+          }
+        }
+
+        if (isMounted) setProducts(apiProducts.map(mapProduct));
+      } catch {
+        // API failed — fall back to localStorage
+        const localItems = wishlistStore.get();
+        if (localItems.length > 0) {
+          const results = await Promise.allSettled(
+            localItems.map((item) => productAPI.getById(item.productId))
+          );
+          const mapped = results
+            .filter((r): r is PromiseFulfilledResult<any> => r.status === "fulfilled" && r.value?.data)
+            .map((r) => mapProduct(r.value.data));
+          if (isMounted) setProducts(mapped);
+        } else {
+          if (isMounted) setProducts([]);
+        }
+      } finally {
+        if (isMounted) setLoading(false);
       }
     };
 
-    fetchProducts();
-
+    run();
     return () => { isMounted = false; };
-  }, [JSON.stringify(productIds)]);
+  }, [isAuthenticated]);
 
-  const handleRemove = (productId: string) => {
-    removeFromWishlist(productId);
+  const handleRemove = async (productId: string) => {
+    await removeFromWishlist(productId);
+    setProducts((prev) => prev.filter((p) => p.id !== productId));
+    toast.success("Removed from wishlist");
   };
 
   return (
@@ -58,21 +102,29 @@ export default function Wishlist() {
             <div>
               <h1 className="font-display text-5xl md:text-6xl font-bold animate-fade-in-up">My Wishlist</h1>
               <p className="text-white/70 mt-1 animate-fade-in-up" style={{ animationDelay: "0.1s" }}>
-                {productIds.length === 0 ? "Your wishlist is empty" : `${productIds.length} items saved`}
+                {loading ? "Loading..." : products.length === 0 ? "Your wishlist is empty" : `${products.length} items saved`}
               </p>
             </div>
           </div>
         </div>
       </section>
+
       <section className="py-12">
         <div className="container">
-          {products.length === 0 ? (
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-32 text-center">
+              <Loader2 className="w-12 h-12 animate-spin text-muted-foreground mb-4" />
+              <p className="text-muted-foreground">Loading your wishlist...</p>
+            </div>
+          ) : products.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-32 text-center">
               <div className="w-32 h-32 rounded-full bg-gradient-to-br from-pink-100 to-rose-100 flex items-center justify-center mb-8">
                 <Heart className="w-16 h-16 text-pink-300" />
               </div>
               <h2 className="font-display text-3xl font-bold mb-3">Your wishlist is empty</h2>
-              <p className="text-muted-foreground mb-8 max-w-md">Start adding products you love by clicking the heart icon on any product</p>
+              <p className="text-muted-foreground mb-8 max-w-md">
+                Start adding products you love by clicking the heart icon on any product
+              </p>
               <Link to="/products">
                 <Button className="bg-gradient-gold text-primary hover:opacity-90 font-semibold">
                   <ShoppingBag className="w-4 h-4 mr-2" /> Browse Products
@@ -103,7 +155,9 @@ export default function Wishlist() {
                     <div className="flex items-center justify-between">
                       <div className="font-display text-2xl font-bold">₹{p.price}</div>
                       <div className="text-xs text-muted-foreground">
-                        {p.in_stock ? <span className="text-green-600">In Stock</span> : <span className="text-red-600">Out of Stock</span>}
+                        {p.in_stock
+                          ? <span className="text-green-600">In Stock</span>
+                          : <span className="text-red-600">Out of Stock</span>}
                       </div>
                     </div>
                     <div className="mt-4 flex gap-3">

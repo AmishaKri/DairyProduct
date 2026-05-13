@@ -9,7 +9,18 @@ export type WishlistItem = {
 };
 
 const KEY = "kshira_wishlist_v1";
+const SESSION_KEY = "kshira_session_id";
 const listeners = new Set<() => void>();
+
+// Get or create a persistent guest session ID
+const getSessionId = (): string => {
+  let id = localStorage.getItem(SESSION_KEY);
+  if (!id) {
+    id = crypto.randomUUID();
+    localStorage.setItem(SESSION_KEY, id);
+  }
+  return id;
+};
 
 const read = (): WishlistItem[] => {
   try { return JSON.parse(localStorage.getItem(KEY) || "[]"); } catch { return []; }
@@ -24,62 +35,73 @@ export const wishlist = {
   async add(productId: string) {
     const token = localStorage.getItem("kshira_token");
     const authenticated = !!token;
-    
+
     // Update local state first
     const items = read();
     const existing = items.find((i) => i.productId === productId);
     if (existing) return;
-    
+
     const newItem: WishlistItem = {
       _id: crypto.randomUUID(),
       productId,
       userId: "current",
       createdAt: new Date().toISOString(),
     };
-    
+
     write([...items, newItem]);
-    
-    // Only sync with server if authenticated
-    if (authenticated) {
-      try {
-        await wishlistAPI.add(productId);
-      } catch (e) {
-        // If API call fails, revert local change
-        const currentItems = read().filter((i) => i.productId !== productId);
-        write(currentItems);
-        
-        // Only log non-401 errors
-        if (e.response?.status !== 401) {
-          console.error("Failed to add to wishlist:", e);
+
+    // Always sync to DB — authenticated users use userId, guests use sessionId
+    try {
+      if (authenticated) {
+        try {
+          await wishlistAPI.add(productId);
+        } catch (authErr: any) {
+          // Token expired/invalid — fall back to sessionId
+          if (authErr.response?.status === 401) {
+            await wishlistAPI.add(productId, getSessionId());
+          } else if (authErr.response?.status !== 400) {
+            console.error("Failed to add to wishlist:", authErr);
+          }
         }
+      } else {
+        await wishlistAPI.add(productId, getSessionId());
+      }
+    } catch (e: any) {
+      if (e.response?.status !== 400) {
+        console.error("Failed to add to wishlist:", e);
       }
     }
   },
   async remove(productId: string) {
     const token = localStorage.getItem("kshira_token");
     const authenticated = !!token;
-    
+
     // Update local state first
     const items = read();
     const existing = items.find((i) => i.productId === productId);
     if (!existing) return;
-    
-    // Remove from local state
+
     const updatedItems = items.filter((i) => i.productId !== productId);
     write(updatedItems);
-    
-    // Only sync with server if authenticated
-    if (authenticated) {
-      try {
-        await wishlistAPI.remove(productId);
-      } catch (e) {
-        // If API call fails, revert local change
-        write(items);
-        
-        // Only log non-401 errors
-        if (e.response?.status !== 401) {
-          console.error("Failed to remove from wishlist:", e);
+
+    // Always sync to DB
+    try {
+      if (authenticated) {
+        try {
+          await wishlistAPI.remove(productId);
+        } catch (authErr: any) {
+          if (authErr.response?.status === 401) {
+            await wishlistAPI.remove(productId, getSessionId());
+          } else if (authErr.response?.status !== 404) {
+            console.error("Failed to remove from wishlist:", authErr);
+          }
         }
+      } else {
+        await wishlistAPI.remove(productId, getSessionId());
+      }
+    } catch (e: any) {
+      if (e.response?.status !== 404) {
+        console.error("Failed to remove from wishlist:", e);
       }
     }
   },

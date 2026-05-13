@@ -5,7 +5,13 @@ const wishlistSchema = new mongoose.Schema(
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true,
+      required: false,
+      default: null,
+    },
+    sessionId: {
+      type: String,
+      required: false,
+      default: null,
     },
     productId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -18,7 +24,8 @@ const wishlistSchema = new mongoose.Schema(
   }
 );
 
-// Ensure a user can only wishlist a product once
-wishlistSchema.index({ userId: 1, productId: 1 }, { unique: true });
+// Index for quick lookups
+wishlistSchema.index({ userId: 1, productId: 1 });
+wishlistSchema.index({ sessionId: 1, productId: 1 });
 
 export default mongoose.model("Wishlist", wishlistSchema);

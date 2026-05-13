@@ -90,8 +90,10 @@ export const couponAPI = {
 };
 
 export const wishlistAPI = {
-  add: (productId: string) => userApi.post("/wishlist", { productId }),
-  remove: (productId: string) => userApi.delete(`/wishlist/${productId}`),
+  add: (productId: string, sessionId?: string) =>
+    userApi.post("/wishlist", { productId, ...(sessionId ? { sessionId } : {}) }),
+  remove: (productId: string, sessionId?: string) =>
+    userApi.delete(`/wishlist/${productId}`, { params: sessionId ? { sessionId } : {} }),
   getAll: () => userApi.get("/wishlist"),
   getAllAdmin: () => adminApi.get("/wishlist/admin/all"),
   check: (productId: string) => userApi.get(`/wishlist/check/${productId}`),

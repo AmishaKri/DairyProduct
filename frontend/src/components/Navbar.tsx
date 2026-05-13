@@ -227,7 +227,7 @@ export default function Navbar({ onCartClick }: { onCartClick: () => void }) {
           <nav className="container py-4 flex flex-col gap-1">
             {links.map((l) => (
               <Link key={l.key} to={l.to} onClick={() => setOpen(false)}
-                className="px-4 py-3 rounded-md text-sm font-medium text-white hover:bg-secondary transition-colors">
+                className="px-4 py-3 rounded-md text-sm font-medium text-foreground hover:bg-secondary transition-colors">
                 {t(`navbar.${l.key}`)}
               </Link>
             ))}
