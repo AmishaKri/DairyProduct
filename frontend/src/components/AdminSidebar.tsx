@@ -79,7 +79,7 @@ export default function AdminSidebar({ activeTab, onTabChange, onLogout, isOpen 
           className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-destructive hover:bg-destructive/10 transition-colors mt-4"
         >
           <LogOut className="w-5 h-5" />
-          Logout
+          LOGOUT
         </button>
       </aside>
     </>
